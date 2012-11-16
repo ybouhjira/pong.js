@@ -1,0 +1,344 @@
+<html>
+<head>
+    <title>Pong game</title>
+    <meta charset="utf-8" />
+    <style>canvas{border:px solid black; box-shadow: 0 0 5px #000}</style>
+</head>
+<body>
+    <canvas width="1000" height="500" id="paper"></canvas>
+    <script>
+        // GLOBALS
+        var canvas = document.getElementById("paper");
+        var ctx = canvas.getContext("2d");
+        ctx.textAlign = "center";
+        var WIDTH = canvas.getAttribute("width");
+        var HEIGHT = canvas.getAttribute("height");
+        var MAX_SPEED_D = 10 ;
+        var MIN_SPEED_D = 6 ;
+        var leftPlayerScore = 0;
+        var rightPlayerScore = 0;
+        var downKeys = {
+            z: false,
+            s: false,
+            q: false,
+            d: false,
+            up: false,
+            down: false,
+            right: false,
+            left: false,
+        } ;
+        var arrowKeys = {
+            left: 37,
+            up: 38,
+            right: 39,
+            down: 40
+        }
+        var leftPlayer = new Player(0,HEIGHT/2-75,20,150);
+        var rightPlayer = new Player(WIDTH-40,HEIGHT/2-75,20,150);
+        var ball = new Ball(WIDTH/2,HEIGHT/2,20,5,1);
+        var lPPrev = new Player(
+            leftPlayer.x-2,
+            leftPlayer.y-2,
+            leftPlayer.width+4,
+            leftPlayer.height+4
+        );
+        var rPPrev = new Player(
+            rightPlayer.x-2,
+            rightPlayer.y-2,
+            rightPlayer.width+4,
+            rightPlayer.height+4
+        );
+        var ballPrev = new Player(
+            ball.x - ball.radius - 6,
+            ball.y - ball.radius - 6,
+            ball.radius*2 - 12,
+            ball.radius*2 - 12
+        );
+        
+
+        // PLAYER CLASS
+        function Player(x,y,width,height){
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+        }
+        Player.prototype.draw = function() {
+            ctx.save();
+            ctx.fillStyle = "#058" ;
+            ctx.strokeStyle = "#f50";
+            ctx.lineWidth = 2;
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+            ctx.strokeRect(this.x, this.y, this.width, this.height);
+            ctx.restore();
+        };
+
+        // BALL CLASS
+        function Ball(x,y,radius,vx,vy){
+            this.x = x;
+            this.y = y;
+            this.radius = radius ;
+            this.vx = vx ;
+            this.vy = vy ;
+        }
+        Ball.prototype.draw = function() {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+            ctx.fillStyle = '#f80' ;
+            ctx.strokeStyle = '#058' ;
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        };
+        
+        function drawMiddleLines(){
+            ctx.save();
+            ctx.strokeStyle = "blue" ;
+            ctx.lineWidth = 2 ;
+            ctx.beginPath();
+            ctx.moveTo(WIDTH/2,0);
+            ctx.lineTo(WIDTH/2,HEIGHT);
+            ctx.stroke();
+
+            ctx.lineWidth = 0.5;
+            ctx.strokeStyle = 'lightblue';
+            ctx.beginPath();
+            ctx.moveTo(WIDTH/2+40,0);
+            ctx.lineTo(WIDTH/2+40,HEIGHT);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(WIDTH/2-40,0);
+            ctx.lineTo(WIDTH/2-40,HEIGHT);
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+
+        function writeScore(){
+            ctx.save();
+            ctx.font = "38 Arial";
+            ctx.fillStyle = "rgba(0,0,0,0.5)";
+            ctx.fillText(leftPlayerScore,30, 30);
+            ctx.fillText(rightPlayerScore,WIDTH-30, 30);
+            ctx.restore();
+        }
+        
+        // CLEARS THE CANVAS FOR NEXT FRAME 
+        function clearCanvas(){
+            ctx.clearRect( 
+                lPPrev.x,
+                lPPrev.y,
+                lPPrev.width,
+                lPPrev.height
+            );
+
+            ctx.clearRect( 
+                rPPrev.x,
+                rPPrev.y,
+                rPPrev.width,
+                rPPrev.height
+            );
+
+            ctx.clearRect( 
+                ballPrev.x,
+                ballPrev.y,
+                ballPrev.width,
+                ballPrev.height
+            );
+
+            ctx.clearRect(0,0,60,40);
+            ctx.clearRect(WIDTH-60,0,40,40);
+        }
+
+        // KEYDOWN EVENT LISTENER
+        window.addEventListener("keydown",function(e){
+            switch(e.keyCode){
+                case 'Z'.charCodeAt(0):
+                    downKeys.z = true ;
+                    break;
+                case 'Q'.charCodeAt(0):
+                    downKeys.q = true ;
+                    break;
+                case 'S'.charCodeAt(0):
+                    downKeys.s = true ;
+                    break;
+                case 'D'.charCodeAt(0):
+                    downKeys.d = true ;
+                    break;
+                case arrowKeys.up:
+                    downKeys.up = true;
+                    break;
+                case arrowKeys.down:
+                    downKeys.down = true;
+                    break;
+                case arrowKeys.right:
+                    downKeys.right = true;
+                    break;
+                case arrowKeys.left:
+                    downKeys.left = true;
+            }
+        });
+
+        // KEYUP EVENT LISTENER
+        window.addEventListener("keyup",function(e){
+            switch(e.keyCode){
+                case 'Z'.charCodeAt(0):
+                    downKeys.z = false ;
+                    break;
+                case 'Q'.charCodeAt(0):
+                    downKeys.q = false ;
+                    break;
+                case 'S'.charCodeAt(0):
+                    downKeys.s = false ;
+                    break;
+                case 'D'.charCodeAt(0):
+                    downKeys.d = false ;
+                case arrowKeys.up:
+                    downKeys.up = false;
+                    break;
+                case arrowKeys.down:
+                    downKeys.down = false;
+                    break;
+                case arrowKeys.right:
+                    downKeys.right = false;
+                    break;
+                case arrowKeys.left:
+                    downKeys.left = false;
+            }
+        });
+
+        function updatePlayersCoordinates(){
+            // the left player :
+            if(downKeys.z && leftPlayer.y >= 5)
+                leftPlayer.y -= 5;
+            if(downKeys.s && leftPlayer.y + leftPlayer.height <= HEIGHT)
+                leftPlayer.y += 5;
+            if(downKeys.q && leftPlayer.x >= 5)
+                leftPlayer.x -= 5;
+            if(downKeys.d && leftPlayer.x + leftPlayer.width <= WIDTH/2 - 50)
+                leftPlayer.x += 5;
+
+            // the right player :
+            if(downKeys.up && rightPlayer.y >= 5)
+                rightPlayer.y -= 5;
+            if(downKeys.down && rightPlayer.y + rightPlayer.height <= HEIGHT)
+                rightPlayer.y += 5;
+            if(downKeys.left && rightPlayer.x >= WIDTH / 2 + 50)
+                rightPlayer.x -= 5;
+            if(downKeys.right && rightPlayer.x + rightPlayer.width <= WIDTH)
+                rightPlayer.x += 5;
+        }
+
+        function updateBallCoordinates(){
+            var b =ball, lp = leftPlayer, rp = rightPlayer;
+            
+            // the ball hits right player
+            if( ball.vx > 0   
+                && b.x + b.radius + b.vx >= rp.x 
+                && b.y + b.vy <= rp.y + rp.height
+                && b.y + b.vy >= rp.y
+                && b.x + b.radius + b.vx <= rp.x + rp.width )
+            {
+                var rpvx = rPPrev.x - rp.x + 2;
+                var rpvy = rPPrev.y - rp.y + 2;
+                
+                b.vx = b.vx - b.vx * 0.1 ;
+                b.vx += (rpvx>0)? rpvx:0 ;
+                b.vy += (rpvy>0)? rpvy:0 ;
+                b.vx *= -1;
+            }
+
+            // the ball hits left player
+            if( ball.vx < 0 
+                && b.x - b.radius + b.vx <= lp.x + lp.width  
+                && b.y + b.vy >= lp.y
+                && b.y + b.vy <= lp.y + lp.height
+                && b.x + b.radius + b.vx >= lp.x )
+            {
+                var lpvx = lp.x - lPPrev.x -2 ;
+                var lpvy = lp.y - lPPrev.y -2 ;
+                b.vx *= -1;
+                b.vx = b.vx - b.vx * 0.1 ;
+                b.vx += (lpvx>0)? lpvx:0 ;
+                b.vy += (lpvy>0)? lpvy:0 ;
+            }
+
+            //the ball hits the wall
+            if(b.y + b.radius + b.vy >= HEIGHT
+            || b.y - b.radius + b.vy <= 0 )
+            {
+                b.vy *= -1;
+                /*b.vx = b.vx - b.vx * 0.1 ;    
+                b.vy = b.vy - b.vy * 0.1 ; */   
+            }
+
+            b.x += b.vx ;
+            b.y += b.vy ;
+
+            // MAX an MIN constarintes
+            var absVx  = Math.abs(ball.vx) ;
+
+            if(absVx > MAX_SPEED_D){
+                ball.vx = MAX_SPEED_D * ((ball.vx>=0)?1:-1) ;
+            }
+            if(absVx < MIN_SPEED_D){
+                ball.vx = MIN_SPEED_D * ((ball.vx>=0)?1:-1) ;
+            }
+
+            var absVy = Math.abs(ball.vy) ;
+            if(absVy > MAX_SPEED_D){
+                ball.vy = MAX_SPEED_D * ((ball.vy>=0)?1:-1);
+            }
+            if(absVy < MIN_SPEED_D){
+                ball.vy = MIN_SPEED_D * ((ball.vy>=0)?1:-1);
+            }
+
+        }
+
+        function updateScore(){
+            if(ball.x + ball.radius > WIDTH){
+                leftPlayerScore++;
+                ball = new Ball(WIDTH/2, HEIGHT/2, 20, -5, 5 );
+            }else if(ball.x - ball.radius < 0){
+                rightPlayerScore++ ;
+                ball = new Ball(WIDTH/2, HEIGHT/2, 20, 5, -5 );
+            }
+        }
+
+        // THE GAME LOOP
+        setInterval(function(){
+            clearCanvas();
+            
+            // update
+            updatePlayersCoordinates();
+            updateBallCoordinates();
+            updateScore();
+            
+            // draw
+            writeScore();
+            drawMiddleLines();
+            leftPlayer.draw();
+            rightPlayer.draw();
+            ball.draw();
+            
+            // cloning 
+            lPPrev.x = leftPlayer.x -2 ;
+            lPPrev.y = leftPlayer.y -2 ;
+            lPPrev.width = leftPlayer.width + 4;
+            lPPrev.height = leftPlayer.height +4;
+
+            rPPrev.x = rightPlayer.x - 2;
+            rPPrev.y = rightPlayer.y - 2;
+            rPPrev.width = rightPlayer.width + 4;
+            rPPrev.height = rightPlayer.height + 4;
+
+            ballPrev.x = ball.x - ball.radius - 6;
+            ballPrev.y = ball.y - ball.radius - 6;
+            ballPrev.width = ball.radius*2 + 12;
+            ballPrev.height = ball.radius*2 + 12;
+        },16);
+    </script>
+</body>
+</html>
